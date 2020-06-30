@@ -110,6 +110,11 @@ enum {
 
   QUIT_CMD, HELP_CMD,
 
+  //TEST
+  /* key request based on trust on first use (for End-to-End encryption) 
+  the server responses with a certificate/Public-Key of the receiver. */
+  XCERTREQ_CMD,
+
 #ifdef SUPPORT_PROXY
   PROXY_FAIL_IGNORE_CMD,
 #endif
@@ -211,7 +216,10 @@ static smtp_cmd_list cmd_list[] = {
   { "etrn",       sizeof("etrn")-1,       ETRN_CMD, TRUE,  FALSE },
   { "vrfy",       sizeof("vrfy")-1,       VRFY_CMD, TRUE,  FALSE },
   { "expn",       sizeof("expn")-1,       EXPN_CMD, TRUE,  FALSE },
-  { "help",       sizeof("help")-1,       HELP_CMD, TRUE,  FALSE }
+  { "help",       sizeof("help")-1,       HELP_CMD, TRUE,  FALSE },
+  //new XCERTREQ command
+  {"xcertreq",     sizeof("xcertreq")-1,    XCERTREQ_CMD, TRUE, FALSE}
+
 };
 
 static smtp_cmd_list *cmd_list_end =
@@ -231,7 +239,7 @@ uschar * smtp_names[] =
   {
   US"NONE", US"AUTH", US"DATA", US"BDAT", US"EHLO", US"ETRN", US"EXPN",
   US"HELO", US"HELP", US"MAIL", US"NOOP", US"QUIT", US"RCPT", US"RSET",
-  US"STARTTLS", US"VRFY" };
+  US"STARTTLS", US"VRFY", US"XCERTREQ" };
 
 static uschar *protocols_local[] = {
   US"local-smtp",        /* HELO */
@@ -2365,7 +2373,8 @@ while (done <= 0)
       /* The function moan_smtp_batch() does not return. */
       moan_smtp_batch(smtp_cmd_buffer, "501 Unexpected NULL in SMTP command");
       break;
-
+    
+    
 
     default:
       /* The function moan_smtp_batch() does not return. */
@@ -4107,6 +4116,86 @@ while (done <= 0)
 
       break;  /* AUTH_CMD */
 
+
+
+
+/* The XCERTREQ command requires an address as an operand. We parse it for syntactic correctness. The form "<>" is
+    a special case which converts into an empty string. The extracted address is used to search for the certificate 
+    of the given address to return it. The server will respond with the recepient certificate
+    This command is only legal if a tls connection is established. */
+
+    case XCERTREQ_CMD:
+      HAD(SCH_XCERTREQ);
+      //smtp_mailcmd_count++;              /* Count for limit and ratelimit */
+      //was_rej_mail = TRUE;               /* Reset if accepted */
+      //env_mail_type_t * mail_args;       /* Sanity check & validate args */
+
+      /* Check for previous activation */
+      if (tls_in.active.sock < 0)
+        {
+        //tls_error(US "XCERTREQ received without receiving STARTTLS before", US "", NULL);
+        smtp_printf("XXX STARTTLS required before using XCERTREQ\r\n", FALSE);
+        break;
+        }
+
+      if (fl.helo_required && !fl.helo_seen)
+	{
+	smtp_printf("503 HELO or EHLO required\r\n", FALSE);
+	log_write(0, LOG_MAIN|LOG_REJECT, "rejected XCERTREQ from %s: no "
+	  "HELO/EHLO given", host_and_ident(FALSE));
+	break;
+	}
+      //check if address operand is present
+      if (!*smtp_cmd_data)
+	{
+	done = synprot_error(L_smtp_protocol_error, 501, NULL,
+	  US"XCERTREQ must have an address operand");
+	break;
+	}
+      uschar *xcert_recipient = smtp_cmd_data;
+      
+      //get receiver certificate
+      if(certExists(smtp_cmd_data))
+        {
+        
+        uschar *cert = get_recipient_cert(xcert_recipient);
+	//send response with certificate as multiline response ?
+        //cert_size = strlen(cert);
+        //if necessary, send response cert as multiline response
+        //if(cert_size < )
+        //
+        smtp_printf("250 XCERTREQ %s\r\n", FALSE, cert);
+	}
+      else
+        {
+        smtp_printf("XXX no certificate for receiver %s \r\n", FALSE, xcert_recipient);
+        }
+      break; /* XCERTREQ */
+
+
+            
+
+      // maybe use the list of recipients for the cert request. But 
+      //if (recipient_count <= 0)
+        //moan_smtp_batch(smtp_cmd_buffer, "503 MAIL FROM:<sender> command must precede DATA");
+      moan_smtp_batch(smtp_cmd_buffer, "503 No sender yet given");
+
+          if (!*smtp_cmd_data)
+	    {
+	    done = synprot_error(L_smtp_protocol_error, 501, NULL,
+	    US"XKEYREQ must have an address operand");
+	    break;
+	    }
+
+      //receive argument and pass 
+    
+      break; /* XKEYREQ_CMD */
+
+    //case XCERTSTATUS_CMD:
+
+    //  break; /* XCERTSTATUS_CMD */
+
+
     /* The HELO/EHLO commands are permitted to appear in the middle of a
     session as well as at the beginning. They have the effect of a reset in
     addition to their other functions. Their absence at the start cannot be
@@ -4162,6 +4251,7 @@ while (done <= 0)
 
 	break;
 	}
+	
 
       /* If sender_host_unknown is true, we have got here via the -bs interface,
       not called from inetd. Otherwise, we are running an IP connection and the
@@ -4466,6 +4556,12 @@ while (done <= 0)
 	  g = string_catn(g, smtp_code, 3);
 	  g = string_catn(g, US"-PRDR\r\n", 7);
 	  }
+#endif
+
+#ifndef DISABLE_XCERTREQ
+	/* cert request extension */
+	g = string_catn(g, smtp_code, 3);
+	g = string_catn(g, US"-XCERTREQ <recipient>\r\n", 23);
 #endif
 
 #ifdef SUPPORT_I18N
