@@ -4216,34 +4216,54 @@ while (done <= 0)
 	/*user parse.c to set the local and domain part for the address_item recipientAddr_item 
 	this is neccessary for routing the address
 	*/
-  uschar **errormsg = NULL;
-  uschar domain = NULL;
-  uschar local_part = NULL;
-  read_local_part(recipient,&local_part, errormsg, FALSE);
-  if(errormsg)
-  {
-    debug_printf("error while reading local part ");
-  }
-  read_domain(recipient, &domain, errormsg);
-  if(errormsg)
-  {
-    debug_printf("error while reading domain part ");
-  }
+	uschar **errormsg = NULL;
+	uschar domain = NULL;
+	uschar local_part = NULL;
+	//read_local_part(recipient,&local_part, errormsg, FALSE);
+	// if(errormsg)
+	// {
+	// 	debug_printf("error while reading local part ");
+	// }
+	// read_domain(recipient, &domain, errormsg);
+	// if(errormsg)
+	// {
+	// 	debug_printf("error while reading domain part ");
+	// }
 	//TODO:
 	/*
 	check why TLS does not work. After RCPT TO, the server aborts the connection.
 	*/
 
 	DEBUG(D_route)
-   {
+	{
 	  debug_printf("  route address %s\n", recipient);
-   }
-	//route address and check if local 
+	}
+	//prepare address for routing!
 	address_item *addr_local = NULL;
 	address_item *addr_remote = NULL;
 	address_item *addr_new = NULL;
 	address_item *addr_succeed = NULL;
-	route_address(recipientAddr_item, &addr_local, &addr_remote, &addr_new, &addr_succeed, v_none);
+	if ((rc = deliver_split_address(recipientAddr_item)) == OK) 
+	{
+		DEBUG(D_route)
+		{
+			debug_printf("   routing successfully %s\n", recipient);
+		}
+	} else {
+		DEBUG(D_route)
+		{
+			debug_printf("   problem routing %s\n", recipient);
+		}
+		break;
+		//TODO: response
+		smtp_printf("50X Problem routing address for XCERTREQ\r\n", FALSE);
+	}
+	//route address and check if local 
+	rc = route_address(recipientAddr_item, &addr_local, &addr_remote, &addr_new, &addr_succeed, v_none);
+	if(rc) 
+	{
+
+	}
 	 DEBUG(D_route)
       	  {
            if(addr_remote) {
