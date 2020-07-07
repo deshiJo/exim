@@ -11,6 +11,7 @@
 
 #include "exim.h"
 #include <assert.h>
+#include "transports/smtp.h"
 
 
 /* Initialize for TCP wrappers if so configured. It appears that the macro
@@ -4130,11 +4131,16 @@ while (done <= 0)
       //was_rej_mail = TRUE;               /* Reset if accepted */
       //env_mail_type_t * mail_args;       /* Sanity check & validate args */
 
+      DEBUG(D_route)
+      {
+	debug_printf(">>>>>>>>>>>>>>>>>>>>>> XCERTREQ start <<<<<<<<<<<<<<<<<<\n\n");
+	debug_printf("XCERTREQ received: Check TLS already established\n");
+      }
+
       /* Check for previous activation */
       if (tls_in.active.sock < 0)
         {
-        //tls_error(US "XCERTREQ received without receiving STARTTLS before", US "", NULL);
-        smtp_printf("XXX STARTTLS required before using XCERTREQ\r\n", FALSE);
+        smtp_printf("503 STARTTLS required before using XCERTREQ\r\n", FALSE);
         break;
         }
 
@@ -4152,13 +4158,177 @@ while (done <= 0)
 	  US"XCERTREQ must have an address operand");
 	break;
 	}
-      uschar *xcert_recipient = smtp_cmd_data;
+	DEBUG(D_route)
+      	{
+	 debug_printf("Check parameter address of XCERTREQ: \n");
+      	}
+
+	// check and parse address parameter
+	/* Apply SMTP rewriting then extract the working address. Don't allow "<>"
+      as a recipient address */
+
+      recipient = rewrite_existflags & rewrite_smtp
+	? rewrite_one(smtp_cmd_data, rewrite_smtp, NULL, FALSE, US"",
+	    global_rewrite_rules)
+	: smtp_cmd_data;
+	DEBUG(D_route)
+      	{
+	 debug_printf("  Extract recipient address\n");
+      	}
+      if (!(recipient = parse_extract_address(recipient, &errmess, &start, &end,
+	&recipient_domain, FALSE)))
+	{
+	done = synprot_error(L_smtp_syntax_error, 501, smtp_cmd_data, errmess);
+	rcpt_fail_count++;
+	break;
+	}
+	
+
+	if (!recipient_domain)
+	if (!(recipient_domain = qualify_recipient(&recipient, smtp_cmd_data,
+				    US"recipient")))
+	  {
+	  rcpt_fail_count++;
+	  break;
+	  }
+	DEBUG(D_route)
+      	{
+	 debug_printf("  recipient domain %s\n", recipient_domain);
+      	}
+	DEBUG(D_route) 
+	{
+	 //debug_printf("  envelope to: %s\n", addr->address);
+
+	}	 
+	recipient_item *xcert_rcpt_item = NULL;
+	xcert_rcpt_item->orcpt = orcpt;
+	xcert_rcpt_item->dsn_flags = dsn_flags;
+	xcert_rcpt_item->address = recipient;
+	DEBUG(D_route)
+      	{
+	 debug_printf("  make address %s\n", recipient);
+      	}
+	//TODO: check this !
+	address_item *recipientAddr_item = deliver_make_addr(recipient, FALSE);
+
+	//TODO:
+	/*user parse.c to set the local and domain part for the address_item recipientAddr_item 
+	this is neccessary for routing the address
+	*/
+  uschar *errormsg = NULL;
+  read_local_part(recipient,recipientAddr_item->local_part, &errormsg, FALSE);
+  if(errormsg)
+  {
+    debug_printf("error while reading local part ");
+  }
+  read_domain(recipient, recipientAddr_item->domain, errormsg);
+  if(errormsg)
+  {
+    debug_printf("error while reading local part ");
+  }
+	//TODO:
+	/*
+	check why TLS does not work. After RCPT TO, the server aborts the connection.
+	*/
+
+	DEBUG(D_route)
+      	{
+	 debug_printf("  route address %s\n", recipient);
+      	}
+	//route address and check if local 
+	address_item *addr_local = NULL;
+	address_item *addr_remote = NULL;
+	address_item *addr_new = NULL;
+	address_item *addr_succeed = NULL;
+	route_address(recipientAddr_item, &addr_local, &addr_remote, &addr_new, &addr_succeed, v_none);
+	 DEBUG(D_route)
+      	  {
+           if(addr_remote) {
+	    debug_printf("  addr_remote: %s\n", recipient);
+	   }
+	   if(addr_local) {
+	    debug_printf("  addr_local: %s\n", recipient);
+	   }
+	   if(addr_succeed) {
+	    debug_printf("  addr_local: %s\n", recipient);
+	   }
+	  }
+	DEBUG(D_route)
+	 {
+          debug_printf("  transport name : %s\n", recipientAddr_item->transport->name);
+	 }
+	//now check if remote or local addr
+
+	 //if (recipientAddr_item->transport == ) {
+	//  DEBUG(D_route)
+      	//   {
+	//    debug_printf("  request for local address %s\n", recipient);
+      	//   }
+	// } else {
+        //  DEBUG(D_route)
+	//  {
+	//   debug_printf("  forward cert. request for address %s\n", recipient);
+       	//  }
+	// }
+
+	//smtp_context * sx = store_get(sizeof(*sx), TRUE);	/* tainted, for the data buffers */
+
+	//suppress_tls = suppress_tls;  /* stop compiler warning when no TLS support */
+	//*message_defer = FALSE;
+	//uschar *msg = "Transport XCERT get port error"
+	//if(!smtp_get_port(uschar *rstring, address_item *addr, int *port, uschar *msg)) 
+	 //{
+         //debug message and error
+	 //}
+	// uschar *msg = "XCERT";
+	// uschar **interface = NULL;
+	// if(!smtp_get_interface(uschar *istring, host_af, xcert_rcpt_item, &interface, msg)) {
+   
+	// };
+
+	// memset(sx, 0, sizeof(*sx));
+	// sx->addrlist = recipient_item;
+	// sx->conn_args.host = host;
+	// sx->conn_args.host_af = host_af,
+	// sx->port = 25; //defport; maybe change this if neccesarry
+	// sx->conn_args.interface = interface;
+	// sx->helo_data = NULL;
+	// sx->conn_args.tblock = tblock;
+	// /* sx->verify = FALSE; */
+	// gettimeofday(&sx->delivery_start, NULL);
+	// sx->sync_addr = sx->first_addr = addrlist;
+
+	/* Get the channel set up ready for a message (MAIL FROM being the next
+	SMTP command to send */
+
+	// if ((rc = smtp_setup_conn(sx, suppress_tls)) != OK)
+	// {
+	// timesince(&addrlist->delivery_time, &sx->delivery_start);
+	// return rc;
+	// }
+
+	//route address and check if local 
+	//route_address(address_item *addr, address_item **paddr_local,
+	//if (address_item.trans)
+
+	//check_host
+
+	/* check if recipient is local addr or not. 
+	If we received a local address, we respond with a certificate for this addr with 
+	"250 XCERTREQ <cert>".
+
+	If xcert_recipient is a remote address, we build a new smtp connection to this recipient, to redirect this XCERTREQ.
+	The response is either "250 XCERT <cert>" or "510 no certificate for receiver <xcert_recipient> \s\n" */
+
+      //uschar *xcert_recipient = recipient;
+      
       
       //get receiver certificate
       if(certExists(smtp_cmd_data))
         {
         
-        uschar *cert = get_recipient_cert(xcert_recipient);
+        //uschar *cert = get_recipient_cert(xcert_recipient);
+	uschar *cert = US"TESTCERTIFICATE";
 	//send response with certificate as multiline response ?
         //cert_size = strlen(cert);
         //if necessary, send response cert as multiline response
@@ -4168,7 +4338,7 @@ while (done <= 0)
 	}
       else
         {
-        smtp_printf("XXX no certificate for receiver %s \r\n", FALSE, xcert_recipient);
+        smtp_printf("510 no certificate for receiver %s \r\n", FALSE, recipient);
         }
       break; /* XCERTREQ */
 
@@ -4178,18 +4348,18 @@ while (done <= 0)
       // maybe use the list of recipients for the cert request. But 
       //if (recipient_count <= 0)
         //moan_smtp_batch(smtp_cmd_buffer, "503 MAIL FROM:<sender> command must precede DATA");
-      moan_smtp_batch(smtp_cmd_buffer, "503 No sender yet given");
+      //moan_smtp_batch(smtp_cmd_buffer, "503 No sender yet given");
 
-          if (!*smtp_cmd_data)
-	    {
-	    done = synprot_error(L_smtp_protocol_error, 501, NULL,
-	    US"XKEYREQ must have an address operand");
-	    break;
-	    }
+        //   if (!*smtp_cmd_data)
+	//     {
+	//     done = synprot_error(L_smtp_protocol_error, 501, NULL,
+	//     US"XKEYREQ must have an address operand");
+	//     break;
+	//     }
 
       //receive argument and pass 
     
-      break; /* XKEYREQ_CMD */
+      break; /* XCERTREQ_CMD */
 
     //case XCERTSTATUS_CMD:
 
