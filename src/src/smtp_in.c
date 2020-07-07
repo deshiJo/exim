@@ -4194,7 +4194,7 @@ while (done <= 0)
 	  }
 	DEBUG(D_route)
       	{
-	 debug_printf("  recipient domain %s\n", recipient_domain);
+	 //debug_printf("  recipient domain %s\n", recipient_domain);
       	}
 	DEBUG(D_route) 
 	{
@@ -4217,8 +4217,8 @@ while (done <= 0)
 	this is neccessary for routing the address
 	*/
   uschar **errormsg = NULL;
-  uschar *domain = NULL;
-  uschar *local_part = NULL;
+  uschar domain = NULL;
+  uschar local_part = NULL;
   read_local_part(recipient,&local_part, errormsg, FALSE);
   if(errormsg)
   {
