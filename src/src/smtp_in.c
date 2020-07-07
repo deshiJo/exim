@@ -12,6 +12,7 @@
 #include "exim.h"
 #include <assert.h>
 #include "transports/smtp.h"
+#include "parse.c"
 
 
 /* Initialize for TCP wrappers if so configured. It appears that the macro
@@ -4215,16 +4216,18 @@ while (done <= 0)
 	/*user parse.c to set the local and domain part for the address_item recipientAddr_item 
 	this is neccessary for routing the address
 	*/
-  uschar *errormsg = NULL;
-  read_local_part(recipient,recipientAddr_item->local_part, &errormsg, FALSE);
+  uschar **errormsg = NULL;
+  uschar *domain = NULL;
+  uschar *local_part = NULL;
+  read_local_part(recipient,&local_part, errormsg, FALSE);
   if(errormsg)
   {
     debug_printf("error while reading local part ");
   }
-  read_domain(recipient, recipientAddr_item->domain, errormsg);
+  read_domain(recipient, &domain, errormsg);
   if(errormsg)
   {
-    debug_printf("error while reading local part ");
+    debug_printf("error while reading domain part ");
   }
 	//TODO:
 	/*
@@ -4232,9 +4235,9 @@ while (done <= 0)
 	*/
 
 	DEBUG(D_route)
-      	{
-	 debug_printf("  route address %s\n", recipient);
-      	}
+   {
+	  debug_printf("  route address %s\n", recipient);
+   }
 	//route address and check if local 
 	address_item *addr_local = NULL;
 	address_item *addr_remote = NULL;
