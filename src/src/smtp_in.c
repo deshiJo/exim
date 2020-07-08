@@ -12,7 +12,7 @@
 #include "exim.h"
 #include <assert.h>
 #include "transports/smtp.h"
-#include "parse.c"
+//#include "parse.c"
 
 
 /* Initialize for TCP wrappers if so configured. It appears that the macro
@@ -220,7 +220,7 @@ static smtp_cmd_list cmd_list[] = {
   { "expn",       sizeof("expn")-1,       EXPN_CMD, TRUE,  FALSE },
   { "help",       sizeof("help")-1,       HELP_CMD, TRUE,  FALSE },
   //new XCERTREQ command
-  {"xcertreq",     sizeof("xcertreq")-1,    XCERTREQ_CMD, TRUE, FALSE}
+  {"xcertreq:",     sizeof("xcertreq:")-1,    XCERTREQ_CMD, TRUE, FALSE}
 
 };
 
@@ -4142,7 +4142,8 @@ while (done <= 0)
       if (tls_in.active.sock < 0)
         {
         smtp_printf("503 STARTTLS required before using XCERTREQ\r\n", FALSE);
-        break;
+//TODO:ADD BREAK, only removed for debugging 
+        //break;
         }
 
       if (fl.helo_required && !fl.helo_seen)
@@ -4174,17 +4175,20 @@ while (done <= 0)
 	: smtp_cmd_data;
 	DEBUG(D_route)
       	{
-	 debug_printf("  Extract recipient address\n");
+	 debug_printf("  Extract recipient address %s\n", recipient);
       	}
+      //recipient = parse_extract_address(recipient, &errmess, &start, &end, &recipient_domain, FALSE);
       if (!(recipient = parse_extract_address(recipient, &errmess, &start, &end,
 	&recipient_domain, FALSE)))
 	{
+	DEBUG(D_route) {
+		debug_printf("	extracted %s\n", recipient);
+	}
 	done = synprot_error(L_smtp_syntax_error, 501, smtp_cmd_data, errmess);
 	rcpt_fail_count++;
 	break;
 	}
 	
-
 	if (!recipient_domain)
 	if (!(recipient_domain = qualify_recipient(&recipient, smtp_cmd_data,
 				    US"recipient")))
@@ -4201,14 +4205,15 @@ while (done <= 0)
 	 //debug_printf("  envelope to: %s\n", addr->address);
 
 	}	 
-	recipient_item *xcert_rcpt_item = NULL;
-	xcert_rcpt_item->orcpt = orcpt;
-	xcert_rcpt_item->dsn_flags = dsn_flags;
-	xcert_rcpt_item->address = recipient;
 	DEBUG(D_route)
-      	{
-	 debug_printf("  make address %s\n", recipient);
+	{
+	 debug_printf("  make address object for %s\n", recipient);
       	}
+	//recipient_item *xcert_rcpt_item = NULL;
+	//xcert_rcpt_item->orcpt = orcpt;
+	//xcert_rcpt_item->dsn_flags = dsn_flags;
+	//xcert_rcpt_item->address = recipient;
+      	
 	//TODO: check this !
 	address_item *recipientAddr_item = deliver_make_addr(recipient, FALSE);
 
@@ -4216,9 +4221,9 @@ while (done <= 0)
 	/*user parse.c to set the local and domain part for the address_item recipientAddr_item 
 	this is neccessary for routing the address
 	*/
-	uschar **errormsg = NULL;
-	uschar domain = NULL;
-	uschar local_part = NULL;
+	//uschar **errormsg = NULL;
+	//uschar domain = NULL;
+	//uschar local_part = NULL;
 	//read_local_part(recipient,&local_part, errormsg, FALSE);
 	// if(errormsg)
 	// {
@@ -4247,22 +4252,22 @@ while (done <= 0)
 	{
 		DEBUG(D_route)
 		{
-			debug_printf("   routing successfully %s\n", recipient);
+			debug_printf("   split address %s successfully\n", recipient);
 		}
 	} else {
 		DEBUG(D_route)
 		{
-			debug_printf("   problem routing %s\n", recipient);
+			debug_printf("   error while spliiting address  %s\n", recipient);
 		}
+		smtp_printf("50X Problem routing address for XCERTREQ\r\n", FALSE);
 		break;
 		//TODO: response
-		smtp_printf("50X Problem routing address for XCERTREQ\r\n", FALSE);
 	}
 	//route address and check if local 
 	rc = route_address(recipientAddr_item, &addr_local, &addr_remote, &addr_new, &addr_succeed, v_none);
-	if(rc) 
+	if(!rc) 
 	{
-
+		//TODO error
 	}
 	 DEBUG(D_route)
       	  {
@@ -4347,7 +4352,9 @@ while (done <= 0)
       
       
       //get receiver certificate
-      if(certExists(smtp_cmd_data))
+      //if(certExists(smtp_cmd_data))
+
+      if(1)
         {
         
         //uschar *cert = get_recipient_cert(xcert_recipient);
