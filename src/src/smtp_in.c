@@ -220,7 +220,7 @@ static smtp_cmd_list cmd_list[] = {
   { "expn",       sizeof("expn")-1,       EXPN_CMD, TRUE,  FALSE },
   { "help",       sizeof("help")-1,       HELP_CMD, TRUE,  FALSE },
   //new XCERTREQ command
-  {"xcertreq",     sizeof("xcertreq")-1,    XCERTREQ_CMD, TRUE, FALSE}
+  {"xcertreq:",     sizeof("xcertreq:")-1,    XCERTREQ_CMD, TRUE, FALSE}
 
 };
 
@@ -4216,9 +4216,9 @@ while (done <= 0)
 	/*user parse.c to set the local and domain part for the address_item recipientAddr_item 
 	this is neccessary for routing the address
 	*/
-	uschar **errormsg = NULL;
-	uschar domain = NULL;
-	uschar local_part = NULL;
+	//uschar **errormsg = NULL;
+	//uschar domain = NULL;
+	//uschar local_part = NULL;
 	//read_local_part(recipient,&local_part, errormsg, FALSE);
 	// if(errormsg)
 	// {
