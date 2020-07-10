@@ -4292,7 +4292,7 @@ while (done <= 0)
 	If xcert_recipient is a remote address, we build a new smtp connection to this recipient, to redirect this XCERTREQ.
 	The response is either "250 XCERT <cert>" or "510 no certificate for receiver <xcert_recipient> \s\n" */
 
-  if (recipientAddr_item->transport->name == US"local_delivery") {
+  if (recipientAddr_item->transport->info->local) {
      if(cert_exists(recipientAddr_item->address)) {
      //uschar *cert = get_recipient_cert(xcert_recipient);
      uschar *cert = US "TESTCERTIFICATE";
@@ -4306,7 +4306,8 @@ while (done <= 0)
      smtp_printf("510 no certificate for receiver %s \r\n", FALSE, recipient);
     }
   }
-  else if (recipientAddr_item->transport->name == US"remote_smtp") {
+  //else if (recipientAddr_item->transport->name == US"remote_smtp") {
+  else {
     //requested certificate is not local. Forward the request to recipient smtp server
 
     DEBUG(D_route) {
@@ -4358,11 +4359,11 @@ while (done <= 0)
 
     //respond with recipient answer to initial XCERTREQ sender
 
-  } else {
-    DEBUG(D_route) {
-      debug_printf("somethinge went wrong while transporting the certificate");
-    }
-    smtp_printf("5XX fail deliver certificate for %s\r\n", FALSE, recipientAddr_item->address);
+  // } else {
+  //   DEBUG(D_route) {
+  //     debug_printf("somethinge went wrong while transporting the certificate");
+  //   }
+  //   smtp_printf("5XX fail deliver certificate for %s\r\n", FALSE, recipientAddr_item->address);
   }
 
 
