@@ -4293,6 +4293,7 @@ while (done <= 0)
 	The response is either "250 XCERT <cert>" or "510 no certificate for receiver <xcert_recipient> \s\n" */
 
   if (recipientAddr_item->transport->name == US"local_delivery") {
+  if (recipientAddr_item->transport->info->local) {
      //if(cert_exists(recipientAddr_item->address)) {
      if(1) { //TODO use cert_exists function if implemented
 	     //uschar *cert = get_recipient_cert(xcert_recipient);
