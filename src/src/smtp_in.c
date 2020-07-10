@@ -4269,37 +4269,99 @@ while (done <= 0)
 	{
 		//TODO error
 	}
-	 DEBUG(D_route)
-      	  {
-           if(addr_remote) {
+	 DEBUG(D_route) {
+     if(addr_remote) {
 	    debug_printf("  addr_remote: %s\n", recipient);
 	   }
 	   if(addr_local) {
 	    debug_printf("  addr_local: %s\n", recipient);
 	   }
 	   if(addr_succeed) {
-	    debug_printf("  addr_local: %s\n", recipient);
+	    debug_printf("  addr_succeed: %s\n", recipient);
 	   }
 	  }
 	DEBUG(D_route)
 	 {
           debug_printf("  transport name : %s\n", recipientAddr_item->transport->name);
 	 }
-	//now check if remote or local addr
 
-	 //if (recipientAddr_item->transport == ) {
-	//  DEBUG(D_route)
-      	//   {
-	//    debug_printf("  request for local address %s\n", recipient);
-      	//   }
-	// } else {
-        //  DEBUG(D_route)
-	//  {
-	//   debug_printf("  forward cert. request for address %s\n", recipient);
-       	//  }
-	// }
+  /* check if recipient is local addr or not. 
+	If we received a local address, we respond with a certificate for this addr with 
+	"250 XCERTREQ <cert>".
 
-	//smtp_context * sx = store_get(sizeof(*sx), TRUE);	/* tainted, for the data buffers */
+	If xcert_recipient is a remote address, we build a new smtp connection to this recipient, to redirect this XCERTREQ.
+	The response is either "250 XCERT <cert>" or "510 no certificate for receiver <xcert_recipient> \s\n" */
+
+  if (recipientAddr_item->transport->name == US"local_delivery") {
+     if(cert_exists(recipientAddr_item->address)) {
+     //uschar *cert = get_recipient_cert(xcert_recipient);
+     uschar *cert = US "TESTCERTIFICATE";
+     //send response with certificate as multiline response ?
+     //cert_size = strlen(cert);
+     //if necessary, send response cert as multiline response
+     //if(cert_size < )
+     //
+     smtp_printf("250 XCERTREQ %s\r\n", FALSE, cert);
+  } else {
+     smtp_printf("510 no certificate for receiver %s \r\n", FALSE, recipient);
+    }
+  }
+  else if (recipientAddr_item->transport->name == US"remote_smtp") {
+    //requested certificate is not local. Forward the request to recipient smtp server
+
+    //make smtp connection to recipient server with TLS !!!
+    uschar *interface = NULL;
+    int host_af = AF_INET;
+    uschar *interface = NULL;
+    //smtp_transport_init(&tblock); //init tblock ? 
+    uschar msg = US"";
+
+    //currently this does nothing because istring (first arguement) is NULL. Change if necessary
+    BOOL get_interface_sucessful = smtp_get_interface(NULL, &host_af, recipientAddr_item,&interface, msg);
+    if (!get_interface_sucessful) {
+        //TODO error message
+    }
+
+	  smtp_context * sx = store_get(sizeof(*sx), TRUE);	/* tainted, for the data buffers */
+    memset(sx, 0, sizeof(*sx));
+	  sx->addrlist = recipientAddr_item;
+	  sx->conn_args.host = recipientAddr_item->host_used;//host;
+	  sx->conn_args.host_af = host_af;
+	  sx->port = 25; //defport; maybe change this if neccesarry
+    sx->conn_args.interface = interface;
+    sx->helo_data = NULL;
+    sx->conn_args.tblock = recipientAddr_item->transport;//tblock;
+    /* sx->verify = FALSE; */
+    gettimeofday(&sx->delivery_start, NULL);
+    sx->sync_addr = sx->first_addr = recipientAddr_item;
+
+    DEBUG(D_transport) {
+      debug_printf("try to connect to recipient, to ask for certificate\n");
+    }
+    if ((rc = smtp_setup_conn(sx, FALSE)) != OK ) {
+	    timesince(&recipientAddr_item->delivery_time, &sx->delivery_start);
+	    return rc;
+	  }
+
+
+    //create socket for connection to recipient
+    //dont use this, this should be included in smpt_setup_conn(x,y), look above
+    //sx->cctx.sock = smtp_connect(smtp_connect_args * sc, const blob * early_data);
+
+    //abort if TLS or XCERTREQ not supported and inform initial XCERTREQ sender
+
+    //XCERTREQ to recipient smtp server
+
+    //respond with recipient answer to initial XCERTREQ sender
+
+  } else {
+    DEBUG(D_route) {
+      debug_printf("somethinge went wrong while transporting the certificate");
+    }
+    smtp_printf("5XX fail deliver certificate for %s\r\n", FALSE, recipientAddr_item->address);
+  }
+
+
 
 	//suppress_tls = suppress_tls;  /* stop compiler warning when no TLS support */
 	//*message_defer = FALSE;
@@ -4314,26 +4376,7 @@ while (done <= 0)
    
 	// };
 
-	// memset(sx, 0, sizeof(*sx));
-	// sx->addrlist = recipient_item;
-	// sx->conn_args.host = host;
-	// sx->conn_args.host_af = host_af,
-	// sx->port = 25; //defport; maybe change this if neccesarry
-	// sx->conn_args.interface = interface;
-	// sx->helo_data = NULL;
-	// sx->conn_args.tblock = tblock;
-	// /* sx->verify = FALSE; */
-	// gettimeofday(&sx->delivery_start, NULL);
-	// sx->sync_addr = sx->first_addr = addrlist;
 
-	/* Get the channel set up ready for a message (MAIL FROM being the next
-	SMTP command to send */
-
-	// if ((rc = smtp_setup_conn(sx, suppress_tls)) != OK)
-	// {
-	// timesince(&addrlist->delivery_time, &sx->delivery_start);
-	// return rc;
-	// }
 
 	//route address and check if local 
 	//route_address(address_item *addr, address_item **paddr_local,
@@ -4341,12 +4384,7 @@ while (done <= 0)
 
 	//check_host
 
-	/* check if recipient is local addr or not. 
-	If we received a local address, we respond with a certificate for this addr with 
-	"250 XCERTREQ <cert>".
-
-	If xcert_recipient is a remote address, we build a new smtp connection to this recipient, to redirect this XCERTREQ.
-	The response is either "250 XCERT <cert>" or "510 no certificate for receiver <xcert_recipient> \s\n" */
+	
 
       //uschar *xcert_recipient = recipient;
       
@@ -4354,22 +4392,7 @@ while (done <= 0)
       //get receiver certificate
       //if(certExists(smtp_cmd_data))
 
-      if(1)
-        {
-        
-        //uschar *cert = get_recipient_cert(xcert_recipient);
-	uschar *cert = US"TESTCERTIFICATE";
-	//send response with certificate as multiline response ?
-        //cert_size = strlen(cert);
-        //if necessary, send response cert as multiline response
-        //if(cert_size < )
-        //
-        smtp_printf("250 XCERTREQ %s\r\n", FALSE, cert);
-	}
-      else
-        {
-        smtp_printf("510 no certificate for receiver %s \r\n", FALSE, recipient);
-        }
+   
       break; /* XCERTREQ */
 
 
