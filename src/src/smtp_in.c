@@ -4293,14 +4293,15 @@ while (done <= 0)
 	The response is either "250 XCERT <cert>" or "510 no certificate for receiver <xcert_recipient> \s\n" */
 
   if (recipientAddr_item->transport->name == US"local_delivery") {
-     if(cert_exists(recipientAddr_item->address)) {
-     //uschar *cert = get_recipient_cert(xcert_recipient);
-     uschar *cert = US "TESTCERTIFICATE";
-     //send response with certificate as multiline response ?
-     //cert_size = strlen(cert);
-     //if necessary, send response cert as multiline response
-     //if(cert_size < )
-     //
+     //if(cert_exists(recipientAddr_item->address)) {
+     if(1) { //TODO use cert_exists function if implemented
+	     //uschar *cert = get_recipient_cert(xcert_recipient);
+	     uschar *cert = US "TESTCERTIFICATE";
+	     //send response with certificate as multiline response ?
+	     //cert_size = strlen(cert);
+	     //if necessary, send response cert as multiline response
+	     //if(cert_size < )
+	     //
      smtp_printf("250 XCERTREQ %s\r\n", FALSE, cert);
   } else {
      smtp_printf("510 no certificate for receiver %s \r\n", FALSE, recipient);
@@ -4316,7 +4317,7 @@ while (done <= 0)
     //make smtp connection to recipient server with TLS !!!
     uschar *interface = NULL;
     int host_af = AF_INET;
-    uschar *interface = NULL;
+    //uschar *interface = NULL;
     //smtp_transport_init(&tblock); //init tblock ? 
     uschar msg = US"";
 
