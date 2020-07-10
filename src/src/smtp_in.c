@@ -4309,6 +4309,10 @@ while (done <= 0)
   else if (recipientAddr_item->transport->name == US"remote_smtp") {
     //requested certificate is not local. Forward the request to recipient smtp server
 
+    DEBUG(D_route) {
+	    debug_printf(">>>>>>>>>>>>>>>>>>>>>> forward xcertreq to %s \n", recipient);
+    }
+
     //make smtp connection to recipient server with TLS !!!
     uschar *interface = NULL;
     int host_af = AF_INET;
