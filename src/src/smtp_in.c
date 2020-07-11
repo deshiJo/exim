@@ -4321,18 +4321,18 @@ while (done <= 0)
     int host_af = AF_INET;
     //uschar *interface = NULL;
     //smtp_transport_init(&tblock); //init tblock ? 
-    uschar msg = US"";
+    //uschar msg = US"";
 
     //currently this does nothing because istring (first arguement) is NULL. Change if necessary
-    BOOL get_interface_sucessful = smtp_get_interface(NULL, &host_af, recipientAddr_item,&interface, msg);
-    if (!get_interface_sucessful) {
+    //BOOL get_interface_sucessful = smtp_get_interface(NULL, &host_af, recipientAddr_item,&interface, msg);
+    //if (!get_interface_sucessful) {
         //TODO error message
-    }
+    //}
 
 	  smtp_context * sx = store_get(sizeof(*sx), TRUE);	/* tainted, for the data buffers */
     memset(sx, 0, sizeof(*sx));
 	  sx->addrlist = recipientAddr_item;
-	  sx->conn_args.host = recipientAddr_item->host_used;//host;
+	  sx->conn_args.host = recipientAddr_item->host_list;//recipientAddr_item->host_used;//host;
 	  sx->conn_args.host_af = host_af;
 	  sx->port = 25; //defport; maybe change this if neccesarry
     sx->conn_args.interface = interface;
