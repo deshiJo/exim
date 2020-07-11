@@ -4329,12 +4329,12 @@ while (done <= 0)
         //TODO error message
     //}
 
-	  smtp_context * sx = store_get(sizeof(*sx), TRUE);	/* tainted, for the data buffers */
+    smtp_context * sx = store_get(sizeof(*sx), TRUE);	/* tainted, for the data buffers */
     memset(sx, 0, sizeof(*sx));
-	  sx->addrlist = recipientAddr_item;
-	  sx->conn_args.host = recipientAddr_item->host_list;//recipientAddr_item->host_used;//host;
-	  sx->conn_args.host_af = host_af;
-	  sx->port = 25; //defport; maybe change this if neccesarry
+    sx->addrlist = recipientAddr_item;
+    sx->conn_args.host = recipientAddr_item->host_list;//recipientAddr_item->host_used;//host;
+    sx->conn_args.host_af = host_af;
+    sx->port = 25; //defport; maybe change this if neccesarry
     sx->conn_args.interface = interface;
     sx->helo_data = NULL;
     sx->conn_args.tblock = recipientAddr_item->transport;//tblock;
@@ -4343,21 +4343,36 @@ while (done <= 0)
     sx->sync_addr = sx->first_addr = recipientAddr_item;
 
     DEBUG(D_transport) {
-      debug_printf("try to connect to recipient, to ask for certificate\n");
+      debug_printf("create connection to forward certificate request\n");
     }
     if ((rc = smtp_setup_conn(sx, FALSE)) != OK ) {
 	    timesince(&recipientAddr_item->delivery_time, &sx->delivery_start);
+	    smtp_printf("XXX Something went wrong while forwarding xcertreq:<%s> \r\n", recipient);
+            DEBUG(D_transport) {
+		    debug_printf("smtp_setup_conn failed\n");
+	    }
 	    return rc;
-	  }
-
-
-    //create socket for connection to recipient
-    //dont use this, this should be included in smpt_setup_conn(x,y), look above
-    //sx->cctx.sock = smtp_connect(smtp_connect_args * sc, const blob * early_data);
-
+    } 
     //abort if TLS or XCERTREQ not supported and inform initial XCERTREQ sender
+    //sx->ehlo_resp //TODO check tls connection 
+    if (!sx->cctx.tls_ctx) {
+    	if (sx->peer_offered & OPTION_TLS) {
+            DEBUG(D_transport) {
+		    debug_printf("recipient server does not support STARTTLS: xcertreq failed\n");
+	    }
+            smtp_printf("5XX recipient server does not support STARTTLS\r\n",FALSE);
+	    break;
+    	} else {
+            DEBUG(D_transport) {
+		    debug_printf("STARTTLS for xcertreq failed\n");
+	    }
+            smtp_printf("5XX STARTTLS to recipient server failed\r\n",FALSE);
+	    break;
+	}
+    }
 
     //XCERTREQ to recipient smtp server
+    //smtp_wirte_command ? ;
 
     //respond with recipient answer to initial XCERTREQ sender
 
