@@ -4380,7 +4380,7 @@ while (done <= 0)
     } 
 
     //XCERTREQ to recipient smtp server
-    if (smtp_write_command(sx, SCMD_FLUSH, "XCERTREQ<%.1000s>\r\n",recipient) < 0){
+    if (smtp_write_command(sx, SCMD_FLUSH, "XCERTREQ:<%.1000s>\r\n",recipient) < 0){
 	   //send xcertreq failed 
     }
     if(!smtp_read_response(sx, sx->buffer, sizeof(sx->buffer), '2', 120)) {//Timeout is 120 seconds. Change it if necessary
@@ -4394,10 +4394,15 @@ while (done <= 0)
 	break;
      	}
     } 
-    uschar *xcertreq_response	= string_copy(sx->buffer);
+    uschar *xcertreq_response = string_copy(sx->buffer);
+    //uschar *xcertreq_response = sx->buffer;
+    DEBUG(D_transport) {
+	    debug_printf("received certificate from recipient server: %s\n", xcertreq_response);
+    }
+
 
     //respond with recipient answer to initial XCERTREQ sender
-    smtp_printf("%s\r\n", xcertreq_response);
+    smtp_printf("%s\r\n",FALSE, xcertreq_response);
 
   // } else {
   //   DEBUG(D_route) {
