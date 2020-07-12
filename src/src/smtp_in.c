@@ -4354,9 +4354,8 @@ while (done <= 0)
 	    return rc;
     } 
     //abort if TLS is not supported and inform initial XCERTREQ sender
-    //sx->ehlo_resp //TODO check tls connection 
     if (!sx->cctx.tls_ctx) {
-    	if (sx->peer_offered & OPTION_TLS) {
+    	if (!(sx->peer_offered & OPTION_TLS)) {
             DEBUG(D_transport) {
 		    debug_printf("recipient server does not support STARTTLS: xcertreq failed\n");
 	    }
@@ -4398,6 +4397,7 @@ while (done <= 0)
        			debug_printf("error reading forwarded xcertreq response: %s\n",strerror(errno));
       		}
       	smtp_printf("XXX error forwarding xcertreq\r\n", FALSE);
+	break;
      	}
     } 
     uschar *xcertreq_response	= string_copy(sx->buffer);
@@ -4831,7 +4831,7 @@ while (done <= 0)
 #ifndef DISABLE_XCERTREQ
 	/* cert request extension */
 	g = string_catn(g, smtp_code, 3);
-	g = string_catn(g, US"-XCERTREQ <recipient>\r\n", 23);
+	g = string_catn(g, US"-XCERTREQ:<recipient>\r\n", 23);
 #endif
 
 #ifdef SUPPORT_I18N
