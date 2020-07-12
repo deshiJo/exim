@@ -848,6 +848,7 @@ extern const pcre  *regex_From;        /* For recognizing "From_" lines */
 extern const pcre  *regex_CHUNKING;    /* For recognizing CHUNKING (RFC 3030) */
 extern const pcre  *regex_IGNOREQUOTA; /* For recognizing IGNOREQUOTA (LMTP) */
 extern const pcre  *regex_PIPELINING;  /* For recognizing PIPELINING */
+extern const pcre  *regex_XCERTREQ;    /* For recognizing XCERTREQ */
 extern const pcre  *regex_SIZE;        /* For recognizing SIZE settings */
 #ifndef DISABLE_PIPE_CONNECT
 extern const pcre  *regex_EARLY_PIPE;  /* For recognizing PIPE_CONNCT */

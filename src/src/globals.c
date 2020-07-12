@@ -117,6 +117,10 @@ int     dsn_ret                = 0;
 const pcre  *regex_DSN         = NULL;
 uschar *dsn_advertise_hosts    = NULL;
 
+#ifndef DISABLE_XCERTREQ
+const pcre *regex_XCERTREQ     = NULL;
+#endif
+
 #ifndef DISABLE_TLS
 BOOL    gnutls_compat_mode     = FALSE;
 BOOL    gnutls_allow_auto_pkcs11 = FALSE;

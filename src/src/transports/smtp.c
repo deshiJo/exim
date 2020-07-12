@@ -310,6 +310,11 @@ if (!regex_STARTTLS) regex_STARTTLS =
   regex_must_compile(US"\\n250[\\s\\-]STARTTLS(\\s|\\n|$)", FALSE, TRUE);
 #endif
 
+#ifndef DISABLE_XCERTREQ
+if (!regex_XCERTREQ) regex_XCERTREQ =
+  regex_must_compile(US"\\n250[\\s\\-]XCERTREQ:<recipient>(\\s|\\n|$)", FALSE, TRUE);
+#endif
+
 if (!regex_CHUNKING) regex_CHUNKING =
   regex_must_compile(US"\\n250[\\s\\-]CHUNKING(\\s|\\n|$)", FALSE, TRUE);
 
@@ -1709,7 +1714,9 @@ if (  checks & OPTION_TLS
    && pcre_exec(regex_STARTTLS, NULL, CS buf, bsize, 0, PCRE_EOPT, NULL, 0) < 0)
 #endif
   checks &= ~OPTION_TLS;
-
+if (  checks & OPTION_XCERTREQ
+   && pcre_exec(regex_XCERTREQ, NULL, CS buf, bsize, 0, PCRE_EOPT, NULL, 0) < 0)
+   checks &= ~OPTION_XCERTREQ;
 if (  checks & OPTION_IGNQ
    && pcre_exec(regex_IGNOREQUOTA, NULL, CS buf, bsize, 0,
 		PCRE_EOPT, NULL, 0) < 0)
@@ -2318,7 +2325,7 @@ goto SEND_QUIT;
 #ifndef DISABLE_PIPE_CONNECT
 	| (sx->early_pipe_ok
 	  ?   OPTION_IGNQ
-	    | OPTION_CHUNKING | OPTION_PRDR | OPTION_DSN | OPTION_PIPE | OPTION_SIZE
+	    | OPTION_CHUNKING | OPTION_PRDR | OPTION_DSN | OPTION_PIPE | OPTION_SIZE | OPTION_XCERTREQ
 #ifdef SUPPORT_I18N
 	    | OPTION_UTF8
 #endif
@@ -2650,7 +2657,7 @@ if (continue_hostname == NULL
 #ifndef DISABLE_PIPE_CONNECT
 	| (sx->lmtp && ob->lmtp_ignore_quota ? OPTION_IGNQ : 0)
 	| OPTION_DSN | OPTION_PIPE | OPTION_SIZE
-	| OPTION_CHUNKING | OPTION_PRDR | OPTION_UTF8
+	| OPTION_CHUNKING | OPTION_PRDR | OPTION_UTF8 | OPTION_XCERTREQ
 	| (tls_out.active.sock >= 0 ? OPTION_EARLY_PIPE : 0) /* not for lmtp */
 
 #else

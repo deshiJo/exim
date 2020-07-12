@@ -4371,19 +4371,13 @@ while (done <= 0)
     }
 
     //abort if XCERTREQ is not supported and inform initial XCERTREQ sender
-    if (sx->peer_offered & OPTION_XCERTREQ) { //peer offered XCERTREQ in EHLO response 
+    if (!(sx->peer_offered & OPTION_XCERTREQ)) { //peer offered XCERTREQ in EHLO response 
         DEBUG(D_transport) {
 		debug_printf("recipient server does not support XCERTREQ: xcertreq failed\n");
 	}
         smtp_printf("5XX recipient server does not support XCERTREQ\r\n",FALSE);
 	break;
-    } else {
-        DEBUG(D_transport) {
-		debug_printf("STARTTLS for xcertreq failed\n");
-	}
-       	smtp_printf("5XX STARTTLS to recipient server failed\r\n",FALSE);
-	break;
-    }
+    } 
 
     //XCERTREQ to recipient smtp server
     if (smtp_write_command(sx, SCMD_FLUSH, "XCERTREQ<%.1000s>\r\n",recipient) < 0){
