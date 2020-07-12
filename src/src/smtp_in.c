@@ -4297,7 +4297,7 @@ while (done <= 0)
      //if(cert_exists(recipientAddr_item->address)) {
      if(1) { //TODO use cert_exists function if implemented
 	     //uschar *cert = get_recipient_cert(xcert_recipient);
-	     uschar *cert = US "TESTCERTIFICATE";
+	     uschar *cert = US "TESTCERTIFICATE_TESTMAIL";
 	     //send response with certificate as multiline response ?
 	     //cert_size = strlen(cert);
 	     //if necessary, send response cert as multiline response
@@ -4353,7 +4353,7 @@ while (done <= 0)
 	    }
 	    return rc;
     } 
-    //abort if TLS or XCERTREQ not supported and inform initial XCERTREQ sender
+    //abort if TLS is not supported and inform initial XCERTREQ sender
     //sx->ehlo_resp //TODO check tls connection 
     if (!sx->cctx.tls_ctx) {
     	if (sx->peer_offered & OPTION_TLS) {
@@ -4371,10 +4371,39 @@ while (done <= 0)
 	}
     }
 
+    //abort if XCERTREQ is not supported and inform initial XCERTREQ sender
+    if (sx->peer_offered & OPTION_XCERTREQ) { //peer offered XCERTREQ in EHLO response 
+        DEBUG(D_transport) {
+		debug_printf("recipient server does not support XCERTREQ: xcertreq failed\n");
+	}
+        smtp_printf("5XX recipient server does not support XCERTREQ\r\n",FALSE);
+	break;
+    } else {
+        DEBUG(D_transport) {
+		debug_printf("STARTTLS for xcertreq failed\n");
+	}
+       	smtp_printf("5XX STARTTLS to recipient server failed\r\n",FALSE);
+	break;
+    }
+
     //XCERTREQ to recipient smtp server
-    //smtp_wirte_command ? ;
+    if (smtp_write_command(sx, SCMD_FLUSH, "XCERTREQ<%.1000s>\r\n",recipient) < 0){
+	   //send xcertreq failed 
+    }
+    if(!smtp_read_response(sx, sx->buffer, sizeof(sx->buffer), '2', 120)) {//Timeout is 120 seconds. Change it if necessary
+     //error response
+     
+     	if (errno != 0 || sx->buffer[0] == 0) {
+      		DEBUG(D_transport) {
+       			debug_printf("error reading forwarded xcertreq response: %s\n",strerror(errno));
+      		}
+      	smtp_printf("XXX error forwarding xcertreq\r\n", FALSE);
+     	}
+    } 
+    uschar *xcertreq_response	= string_copy(sx->buffer);
 
     //respond with recipient answer to initial XCERTREQ sender
+    smtp_printf("%s\r\n", xcertreq_response);
 
   // } else {
   //   DEBUG(D_route) {
@@ -4415,10 +4444,6 @@ while (done <= 0)
       //if(certExists(smtp_cmd_data))
 
    
-      break; /* XCERTREQ */
-
-
-            
 
       // maybe use the list of recipients for the cert request. But 
       //if (recipient_count <= 0)
