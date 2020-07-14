@@ -1,5 +1,5 @@
 
-typedef struct {
+typedef struct Hash_element{
    struct Hash_element *next;
    uschar *address;
    uschar *cert;

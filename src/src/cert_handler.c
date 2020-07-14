@@ -3,7 +3,7 @@
 
 #define SIZE 26
 
-struct hash_element* hash_table[SIZE];
+Hash_element* hash_table[SIZE];
 
 /*
    currently only a test method.
@@ -71,7 +71,7 @@ Hash_element *search_hash_table_index(uschar *key) {
 
 void insert(uschar *key,uschar *data) {
 
-   Hash_element *item = (struct Hash_element*) malloc(sizeof(Hash_element));
+   Hash_element *item = (Hash_element*) malloc(sizeof(Hash_element));
    item->cert = data;  
    item->address = key;
 
