@@ -36,11 +36,20 @@ BOOL search_and_get_recipient_cert(uschar *receiver_address, uschar *cert)
 {
 //return US"THIS IS A TEST CERT";
    Hash_element* element = search_hash_table_index(receiver_address);
+   DEBUG(D_transport) {
+      debug_printf("<-------- searching for %s certificate -------> \n", receiver_address);
+   }
    uschar *cert_result = search_value_in_list(element, receiver_address);
    if(cert_result) {
       cert = cert_result;
+      DEBUG(D_transport) {
+         debug_printf("cert %s\n", cert);
+      }
       return TRUE;
    } else {
+      DEBUG(D_transport) {
+         debug_printf("    no certificate found for %s\n", receiver_address);
+      }
       return FALSE;
    }
 }
@@ -66,6 +75,9 @@ uschar * search_value_in_list(Hash_element * element, uschar *key) {
 Hash_element *search_hash_table_index(uschar *key) {
    //get the hash 
    int hashIndex = hashString(key);  
+   DEBUG(D_transport) {
+      debug_printf("    index in hash table: %d\n", hashIndex);
+   }
    return hash_table[hashIndex];
 }
 
