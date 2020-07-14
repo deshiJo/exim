@@ -32,19 +32,30 @@ BOOL load_certificates(void) {
         TRUE if an certificate for this address exists 
         FALSE if no certificate for this address exists
 */
-BOOL search_and_get_recipient_cert(uschar *receiver_address, uschar *cert) 
+BOOL search_and_get_recipient_cert(uschar *receiver_address, uschar ** cert) 
 {
 //return US"THIS IS A TEST CERT";
-   Hash_element* element = search_hash_table_index(receiver_address);
    DEBUG(D_transport) {
       debug_printf("<-------- searching for %s certificate -------> \n", receiver_address);
    }
+   Hash_element *element = search_hash_table_index(receiver_address);
+   if (!(element == NULL)) {
+	Hash_element *debug_element = element;
+	DEBUG(D_transport) {
+      		debug_printf("		List at hash index:\n		");
+	}
+	do {
+		DEBUG(D_transport) {
+			debug_printf("%s -> ", debug_element->address);
+		}
+		debug_element = debug_element->next;
+	} while(!(debug_element==NULL));
+	debug_printf("\n");
+   }
+    
    uschar *cert_result = search_value_in_list(element, receiver_address);
-   if(cert_result) {
-      cert = cert_result;
-      DEBUG(D_transport) {
-         debug_printf("cert %s\n", cert);
-      }
+   if(!(cert_result == NULL)) {
+      *cert = cert_result;
       return TRUE;
    } else {
       DEBUG(D_transport) {
@@ -63,9 +74,14 @@ int hashString(uschar *key) {
 }
 
 uschar * search_value_in_list(Hash_element * element, uschar *key) {
-   while(element == NULL) {
-      if(element->address == key)
+   while(!(element == NULL)) {
+      DEBUG(D_transport) {
+	 uschar *addr = element->address;
+         debug_printf("    element address %s\n", addr);
+      }
+      if(strcmp(element->address, key)) {
          return element->cert; 
+      }
       element=element->next;
    }        
 	
@@ -86,18 +102,28 @@ void insert(uschar *key,uschar *data) {
    Hash_element *item = (Hash_element*) malloc(sizeof(Hash_element));
    item->cert = data;  
    item->address = key;
+   item->next = NULL;
 
    //get the hash 
    int hashIndex = hashString(key);
 
    Hash_element *element = hash_table[hashIndex];
+   DEBUG(D_transport) {
+      debug_printf("    add element	 %s : %s\n", item->address, item->cert);
+   }
+  	 
 
-   if(!element) {
+   if(element == NULL) {
       hash_table[hashIndex] = item;
    } else {
-      while(element->next) {
+      while(element->next != NULL) {
+	DEBUG(D_transport) {
+      		debug_printf("    	 %s -> \n", element->address);
+   	}
          element = element->next;
+
       }
+	
       element->next = item;
    }
 }

@@ -332,8 +332,8 @@ static int smtp_read_command(BOOL check_sync, unsigned buffer_lim);
 static int synprot_error(int type, int code, uschar *data, uschar *errmess);
 static void smtp_quit_handler(uschar **, uschar **);
 static void smtp_rset_handler(void);
-BOOL load_certificates(void);
-BOOL search_and_get_recipient_cert(uschar *receiver_address, uschar *cert);
+//BOOL load_certificates(void);
+//BOOL search_and_get_recipient_cert(uschar *receiver_address, uschar *cert);
 
 /*************************************************
 *          Recheck synchronization               *
@@ -4309,8 +4309,10 @@ while (done <= 0)
   //if (recipientAddr_item->transport->name == US"local_delivery") {
   if (recipientAddr_item->transport->info->local) {
      //if(cert_exists(recipientAddr_item->address)) {
-       uschar *cert = US"";
-     if(search_and_get_recipient_cert(recipient, cert)) { //TODO use cert_exists function if implemented
+       uschar *cert_result = US"";
+       BOOL found = search_and_get_recipient_cert(recipient, &cert_result);
+       debug_printf("certtttt :%s\n", cert_result);
+     if(found) { //TODO use cert_exists function if implemented
 	     //uschar *cert = get_recipient_cert(xcert_recipient);
 
        
@@ -4321,7 +4323,8 @@ while (done <= 0)
 	     //if necessary, send response cert as multiline response
 	     //if(cert_size < )
 	     //
-        smtp_printf("250 XCERTREQ %s\r\n", FALSE, cert);
+	
+        smtp_printf("250 XCERTREQ %s\r\n", FALSE, cert_result);
   } else {
      smtp_printf("510 no certificate for receiver %s \r\n", FALSE, recipient);
     }
