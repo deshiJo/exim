@@ -141,8 +141,11 @@ to the circular buffer that holds a list of the last n received. */
 
 static struct {
   BOOL auth_advertised			:1;
+#ifndef DISABLE_XCERTREQ
+  BOOL certs_loaded       :1;
+#endif
 #ifndef DISABLE_TLS
-  BOOL tls_advertised			:1;
+  BOOL tls_advertised     :1;
 #endif
   BOOL dsn_advertised			:1;
   BOOL esmtp				:1;
@@ -163,6 +166,7 @@ static struct {
   .helo_required = FALSE,
   .helo_verify = FALSE,
   .smtp_exit_function_called = FALSE,
+  .certs_loaded = FALSE,
 };
 
 static auth_instance *authenticated_by;
@@ -4132,6 +4136,14 @@ while (done <= 0)
       //was_rej_mail = TRUE;               /* Reset if accepted */
       //env_mail_type_t * mail_args;       /* Sanity check & validate args */
 
+
+      //load certificates if this is not done already
+      if(!fl.certs_loaded) {
+        load_certificates();
+        fl.certs_loaded = TRUE;
+      }
+
+
       DEBUG(D_route)
       {
 	debug_printf(">>>>>>>>>>>>>>>>>>>>>> XCERTREQ start <<<<<<<<<<<<<<<<<<\n\n");
@@ -4295,15 +4307,19 @@ while (done <= 0)
   //if (recipientAddr_item->transport->name == US"local_delivery") {
   if (recipientAddr_item->transport->info->local) {
      //if(cert_exists(recipientAddr_item->address)) {
-     if(1) { //TODO use cert_exists function if implemented
+       uschar *cert = US"";
+     if(search_and_get_recipient_cert(recipient, cert)) { //TODO use cert_exists function if implemented
 	     //uschar *cert = get_recipient_cert(xcert_recipient);
-	     uschar *cert = US "TESTCERTIFICATE_TESTMAIL";
+
+       
+
+	     //uschar *cert = US "TESTCERTIFICATE_TESTMAIL";
 	     //send response with certificate as multiline response ?
 	     //cert_size = strlen(cert);
 	     //if necessary, send response cert as multiline response
 	     //if(cert_size < )
 	     //
-     smtp_printf("250 XCERTREQ %s\r\n", FALSE, cert);
+        smtp_printf("250 XCERTREQ %s\r\n", FALSE, cert);
   } else {
      smtp_printf("510 no certificate for receiver %s \r\n", FALSE, recipient);
     }
@@ -4373,10 +4389,10 @@ while (done <= 0)
     //abort if XCERTREQ is not supported and inform initial XCERTREQ sender
     if (!(sx->peer_offered & OPTION_XCERTREQ)) { //peer offered XCERTREQ in EHLO response 
         DEBUG(D_transport) {
-		debug_printf("recipient server does not support XCERTREQ: xcertreq failed\n");
-	}
+		      debug_printf("recipient server does not support XCERTREQ: xcertreq failed\n");
+	      }
         smtp_printf("5XX recipient server does not support XCERTREQ\r\n",FALSE);
-	break;
+	      break;
     } 
 
     //XCERTREQ to recipient smtp server
