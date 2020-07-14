@@ -25,6 +25,10 @@ extern void    cleanup_perl(void);
 extern uschar *init_perl(uschar *);
 #endif
 
+#ifndef DISABLE_XCERTREQ
+extern BOOL search_and_get_recipient_cert(uschar *receiver_address, uschar *cert);
+extern BOOL load_certificates(void);
+#endif
 
 #ifndef DISABLE_TLS
 extern const char *
