@@ -1,4 +1,5 @@
 #include "exim.h"
+#include "cert_handler.h"
 
 #define SIZE 26
 
