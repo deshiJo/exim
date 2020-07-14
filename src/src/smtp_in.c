@@ -4156,8 +4156,7 @@ while (done <= 0)
       if (tls_in.active.sock < 0)
         {
         smtp_printf("503 STARTTLS required before using XCERTREQ\r\n", FALSE);
-//TODO:ADD BREAK, only removed for debugging 
-        //break;
+        break;
         }
 
       if (fl.helo_required && !fl.helo_seen)

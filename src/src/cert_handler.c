@@ -76,13 +76,15 @@ int hashString(uschar *key) {
 uschar * search_value_in_list(Hash_element * element, uschar *key) {
    while(!(element == NULL)) {
       DEBUG(D_transport) {
-	 uschar *addr = element->address;
-         debug_printf("    element address %s\n", addr);
+	 //uschar *addr = element->address;
+         debug_printf("    compare %s with ... element %s:%s\n",key, element->address, element->cert);
       }
-      if(strcmp(element->address, key)) {
+      if(!strcmp(element->address, key)) {
+         debug_printf("    found %s with cert %s\n",element->address, element->cert);
          return element->cert; 
+      } else {
+      	 element=element->next;
       }
-      element=element->next;
    }        
 	
    return NULL;        
