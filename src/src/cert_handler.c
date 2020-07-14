@@ -5,12 +5,6 @@
 
 struct hash_element* hash_table[SIZE];
 
-struct hash_element {
-   struct hashElement *next;
-   uschar *address;
-   uschar *cert;
-};
-
 /*
    currently only a test method.
    Idea: textfile or db with certificates in pem format -> load from file 
@@ -41,7 +35,7 @@ BOOL load_certificates(void) {
 BOOL search_and_get_recipient_cert(uschar *receiver_address, uschar *cert) 
 {
 //return US"THIS IS A TEST CERT";
-struct hash_element* element = search_hash_table_index(receiver_address);
+   Hash_element* element = search_hash_table_index(receiver_address);
    uschar *cert_result = search_value_in_list(element, receiver_address);
    if(cert_result) {
       cert = cert_result;
@@ -56,10 +50,10 @@ int hashNumber(int key) {
 }
 
 int hashString(uschar *key) {
-   return tolower(key[0])-stoi('a');
+   return tolower(key[0])-'a';
 }
 
-uschar * search_value_in_list(struct hash_element *element, uschar *key) {
+uschar * search_value_in_list(Hash_element * element, uschar *key) {
    while(element == NULL) {
       if(element->address == key)
          return element->cert; 
@@ -69,7 +63,7 @@ uschar * search_value_in_list(struct hash_element *element, uschar *key) {
    return NULL;        
 }
 
-struct hash_element *search_hash_table_index(uschar *key) {
+Hash_element *search_hash_table_index(uschar *key) {
    //get the hash 
    int hashIndex = hashString(key);  
    return hash_table[hashIndex];
@@ -77,14 +71,14 @@ struct hash_element *search_hash_table_index(uschar *key) {
 
 void insert(uschar *key,uschar *data) {
 
-   struct hash_element *item = (struct hash_element*) malloc(sizeof(struct hash_element));
+   Hash_element *item = (struct Hash_element*) malloc(sizeof(Hash_element));
    item->cert = data;  
    item->address = key;
 
    //get the hash 
    int hashIndex = hashString(key);
 
-   struct hash_element *element = hash_table[hashIndex];
+   Hash_element *element = hash_table[hashIndex];
 
    if(!element) {
       hash_table[hashIndex] = item;
