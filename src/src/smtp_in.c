@@ -4322,8 +4322,15 @@ while (done <= 0)
 	     //if necessary, send response cert as multiline response
 	     //if(cert_size < )
 	     //
+	gstring * c = string_get_tainted(24, TRUE);     //
+	//debug_printf("length cert: %d\n", strlen(cert_result));
+
+        c = string_catn(c, cert_result, strlen(cert_result));
+	//for(int i = 0; i<strlen(cert_result);
 	
-        smtp_printf("250 XCERTREQ %s\r\n", FALSE, cert_result);
+	debug_printf("great string: %s\n", string_from_gstring(c));
+	
+        smtp_printf("250 XCERTREQ %s\r\n", FALSE, string_from_gstring(c));
   } else {
      smtp_printf("510 no certificate for receiver %s \r\n", FALSE, recipient);
     }
