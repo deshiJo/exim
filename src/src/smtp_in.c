@@ -4312,25 +4312,53 @@ while (done <= 0)
        BOOL found = search_and_get_recipient_cert(recipient, &cert_result);
        debug_printf("certtttt :%s\n", cert_result);
      if(found) { //TODO use cert_exists function if implemented
-	     //uschar *cert = get_recipient_cert(xcert_recipient);
 
-       
+	BOOL multiline = FALSE; //for debugging
+        if (multiline) {
+	  //%TODO multiline fix: receiving the multiline response cause an error
 
-	     //uschar *cert = US "TESTCERTIFICATE_TESTMAIL";
-	     //send response with certificate as multiline response ?
-	     //cert_size = strlen(cert);
-	     //if necessary, send response cert as multiline response
-	     //if(cert_size < )
-	     //
-	gstring * c = string_get_tainted(24, TRUE);     //
-	//debug_printf("length cert: %d\n", strlen(cert_result));
+	            //smtp_printf("%s\r\n", FALSE, string_from_gstring(c));
+	  gstring * c = string_get_tainted(24, TRUE);     //
+          debug_printf("certificate as multiline response: \n");
+	  const char * delimiter = "\n";
+          uschar * line = strtok(cert_result, delimiter);
+	  uschar * code = US"250-";
 
-        c = string_catn(c, cert_result, strlen(cert_result));
-	//for(int i = 0; i<strlen(cert_result);
+          while(line != NULL) {
+	    debug_printf("line:\n");
+            debug_printf(" %s\n", line ); //printing each token
+	    //Ustrcat(US"250-", line);
+	    //debug_printf(" test \n");
+	    c = string_catn(c, code, strlen(code));
+	    //line = US"250-"+line;
+            c = string_catn(c, line, strlen(line));
+	    c = string_catn(c, US"\n", 1);
+            line = strtok(NULL, delimiter);
+          }
+	  //debug_printf("result : \n");
+	  //debug_printf("%s\n", string_from_gstring(c));
+          smtp_printf("%s\r\n", FALSE, string_from_gstring(c));
+        } else {
+          gstring * c = string_get_tainted(24, TRUE);     //
+          debug_printf("certificate as multiline response: \n");
+	  const char * delimiter = "\n";
+          uschar * line = strtok(cert_result, delimiter);
+
+          while( line != NULL ) {
+	    debug_printf("line:\n");
+            debug_printf(" %s\n", line ); //printing each token
+	    //debug_printf(" test \n");
+	    //c = string_catn(US"250-", 4);
+	    //line = US"250-"+line;
+	    //Ustrcat(line, "250-");
+            c = string_catn(c, line, strlen(line));
+            line = strtok(NULL, delimiter);
+          }
+          smtp_printf("250 XCERTREQ %s\r\n", FALSE, string_from_gstring(c));
+        }
+
 	
-	debug_printf("great string: %s\n", string_from_gstring(c));
-	
-        smtp_printf("250 XCERTREQ %s\r\n", FALSE, string_from_gstring(c));
+        //smtp_printf("250 XCERTREQ %s\r\n", FALSE, string_from_gstring(c));
   } else {
      smtp_printf("510 no certificate for receiver %s \r\n", FALSE, recipient);
     }
