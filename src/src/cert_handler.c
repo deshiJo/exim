@@ -31,11 +31,17 @@ BOOL load_certificates(void) {
       while ((dir = readdir(d)) != NULL) {
 	if (!strcmp(dir->d_name,"..") || !strcmp(dir->d_name,".")) continue;
 	uschar* address = dir->d_name;
+	//printf("l !!! OPENFILE NAME :::::	 %s\n", address);
 	//char* filePath = path;
 	//strcat(filePath, "/");
 	//strcat(filePath, address); 
-	printf("	try to open %s\n", filePath);
-    	FILE *file = fopen(filePath, "rb");
+	char str[80];
+	strcpy(str, path);
+	printf("!!!!!!	try to open %s\n", str);
+	strcat(str, "/");
+	strcat(str, address);
+	printf("!!!!!!	try to open %s\n", str);
+    	FILE *file = fopen(str, "rb");
 	if(file) {
 	  debug_printf("	read file %s\n", address);
 	  //int count = fread(&cert, sizeof(char), 20, file);
