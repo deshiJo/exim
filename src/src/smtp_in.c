@@ -4477,10 +4477,24 @@ while (done <= 0)
     DEBUG(D_transport) {
 	    debug_printf("received certificate from recipient server: %s\n", xcertreq_response);
     }
-
-
-    //respond with recipient answer to initial XCERTREQ sender
+    if(!smtp_read_response(sx, sx->buffer, sizeof(sx->buffer), '2', 120)) {//Timeout is 120 seconds. Change it if necessary
+     //error response
+     
+     	if (errno != 0 || sx->buffer[0] == 0) {
+      		DEBUG(D_transport) {
+       			debug_printf("error reading forwarded xcertreq response: %s\n",strerror(errno));
+      		}
+      	smtp_printf("XXX error forwarding xcertreq\r\n", FALSE);
+	break;
+     	}
+    }
+    uschar *xcertreq_response_domain = string_copy(sx->buffer);
+    DEBUG(D_transport) {
+            debug_printf("received DOMAIN certificate from recipient server: %s\n", xcertreq_response_domain);
+	    }
+	    //respond with recipient answer to initial XCERTREQ sender
     smtp_printf("%s\r\n",FALSE, xcertreq_response);
+    smtp_printf("%s\r\n",FALSE, xcertreq_response_domain);
 
   // } else {
   //   DEBUG(D_route) {
