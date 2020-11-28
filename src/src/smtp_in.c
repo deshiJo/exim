@@ -4313,6 +4313,10 @@ while (done <= 0)
        uschar *domain_cert_result = US"";
        BOOL found_domain_cert = get_domain_cert(&domain_cert_result);
        debug_printf("certtttt :%s\n", cert_result);
+     if(!found_domain_cert) {
+     	smtp_printf("510 no domain certificate found\r\n", FALSE);
+	continue;
+     }
      if(found) { //TODO use cert_exists function if implemented
 
 	BOOL multiline = FALSE; //for debugging
@@ -4362,16 +4366,15 @@ while (done <= 0)
           //create domain certificate response
           gstring * c_domain = string_get_tainted(24, TRUE);     //
           debug_printf("create domain certificate response: \n");
-	  const char * delimiter = "\n";
-          uschar * line = strtok(domain_cert_result, delimiter);
+          uschar * line_domain = strtok(domain_cert_result, delimiter);
 
-          while( line != NULL ) {
-	    debug_printf("line:\n");
-            debug_printf(" %s\n", line ); //printing each token
-            c = string_catn(c, line, strlen(line));
-            line = strtok(NULL, delimiter);
+          while( line_domain != NULL ) {
+	    debug_printf("line_domain:\n");
+            debug_printf(" %s\n", line_domain ); //printing each token
+            c_domain = string_catn(c_domain, line_domain, strlen(line_domain));
+            line_domain = strtok(NULL, delimiter);
           }
-          smtp_printf("250 XCERTREQ %s\r\n", FALSE, string_from_gstring(c));
+          smtp_printf("250 XCERTREQ %s\r\n", FALSE, string_from_gstring(c_domain));
 
 
 
