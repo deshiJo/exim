@@ -111,7 +111,12 @@ BOOL load_certificates(void) {
    //insert(testAddress3, testcert3);
 }
 
-
+BOOl get_domain_cert(uschar ** cert) {
+   //return search_and_get_recipient_cert("domain_cert", cert);
+   uschar test = US"testdomaincert!!!!!!";
+   //return search_and_get_recipient_cert("domain_cert", cert);
+   cert = &test;
+}
 
 /*
     search for an certificate given the mail address in receiver_address and save it at the address given in cert
